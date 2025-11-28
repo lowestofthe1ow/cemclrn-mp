@@ -8,7 +8,7 @@ plugins {
 android {
     namespace = "com.example.cemclrn_application"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -37,12 +37,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-
-    aaptOptions {
-        noCompress("tflite") // Prevent compression of TFLite models
-        noCompress("lite")
-    }
-
 }
 
 flutter {

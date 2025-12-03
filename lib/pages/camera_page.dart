@@ -1,6 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'package:cemclrn_application/services/signature_verifier_service.dart';
+import 'package:cemclrn_application/services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,21 +18,10 @@ class _CameraPageState extends State<CameraPage> {
   // Inference result
   String? resultText;
   double? confidence; 
+  bool _isAnalyzing = false; // Loading state
 
   // Image picker
   final picker = ImagePicker();
-
-  // 1. Instantiate service
-  final SignatureVerifierService _verifier = SignatureVerifierService();
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await _verifier.loadModel();
-      print("Model loaded!");
-    });
-  }
 
   // Pick Image Method
   Future<void> pickImage(ImageSource source) async {
@@ -47,75 +35,64 @@ class _CameraPageState extends State<CameraPage> {
           confidence = null;
         });
 
-        // Run local inference after picking
-        await _runOfflineInference(image!);
+        // Run ONLINE inference immediately after picking
+        await _runOnlineInference(image!);
       }
     } catch (e) {
       debugPrint("Error picking image: $e");
     }
   }
 
-  // CORE LOGIC: This is where the verification happens
-  Future<void> _runOfflineInference(File imageFile) async {
+  // NEW: Replaced _runOfflineInference with API Call
+  Future<void> _runOnlineInference(File imageFile) async {
     final prefs = await SharedPreferences.getInstance();
-    // Use this 'name' later to find the correct folder of reference signatures
-    final name = prefs.getString('username') ?? "TestUser";
+    final name = prefs.getString('username');
+
+    if (name == null || name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: No username found. Restart app.")),
+      );
+      return;
+    }
 
     setState(() {
-      resultText = "Processing...";
+      _isAnalyzing = true;
+      resultText = "Analyzing...";
     });
 
     try {
-      // ---------------------------------------------------------
-      // PYTORCH INTEGRATION POINT
-      // ---------------------------------------------------------
-      
-      // 2. Get bytes from your captured questioned image
-      Uint8List questionedBytes = await imageFile.readAsBytes();
-
-      // 3. Get bytes from your reference image
-      // TODO: FOR PRODUCTION -> Load the real reference signatures from ApplicationDocumentsDirectory
-      // File referenceFile = File('/data/user/0/com.yourapp/app_flutter/Signatures/$name/sig1.png');
-      // Uint8List referenceBytes = await referenceFile.readAsBytes();
-
-      // FOR TESTING NOW -> We compare the image against ITSELF.
-      // This should guarantee a "Genuine" result (Distance 0.0) to prove the code works.
-      Uint8List referenceBytes = questionedBytes; 
-
-      // 4. Run verification
-      // Note: verify() returns a Map with 'isGenuine', 'distance', etc.
-      var result = await _verifier.verify(questionedBytes, referenceBytes);
-
-      bool isGenuine = result['isGenuine'];
-      double dist = result['distance'];
-
-      // Debug prints for your console
-      if (isGenuine) {
-        print("GENUINE! Distance: $dist");
-      } else {
-        print("FORGED! Distance: $dist");
-      }
+      // Call the Python API
+      final response = await ApiService.verifySignature(
+        userName: name,
+        imageFile: imageFile,
+      );
 
       if (!mounted) return;
 
-      setState(() {
-        resultText = isGenuine ? "Genuine" : "Forged";
-        confidence = dist; 
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Result: $resultText, Distance: ${dist.toStringAsFixed(4)}"),
-          backgroundColor: isGenuine ? Colors.green : Colors.red,
-        ),
-      );
-
+      if (response != null && response.containsKey("Result")) {
+        // Success! Update UI with Python's answer
+        setState(() {
+          resultText = response["Result"]; // "Genuine" or "Forged"
+          confidence = response["Avg. distance"] ?? 0.0;
+        });
+      } else {
+        setState(() {
+          resultText = "Error";
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Server returned an error or User not found.")),
+        );
+      }
     } catch (e) {
       print("Error during inference: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Inference failed: $e")),
-        );
+        setState(() {
+          resultText = "Connection Failed";
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isAnalyzing = false);
       }
     }
   }
@@ -127,7 +104,7 @@ class _CameraPageState extends State<CameraPage> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text(
-          "Forged Signature Detector",
+          "Signature Verifier (Online)",
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
         ),
         backgroundColor: Colors.white,
@@ -170,28 +147,26 @@ class _CameraPageState extends State<CameraPage> {
             const SizedBox(height: 20),
 
             // Display inference result
-            if (resultText != null && resultText != "Processing...")
+            if (resultText != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
-                  color: resultText == "Genuine" ? Colors.green[300] : Colors.red[300],
+                  color: _getColorForResult(resultText),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  "$resultText\nDistance: ${(confidence ?? 0).toStringAsFixed(4)}",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
+                child: _isAnalyzing 
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : Text(
+                      "$resultText\nDistance: ${(confidence ?? 0).toStringAsFixed(4)}",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
               ),
             
-            // Loading Indicator
-            if (resultText == "Processing...")
-              const CircularProgressIndicator(),
-
             const SizedBox(height: 30),
 
             // Buttons
@@ -235,5 +210,13 @@ class _CameraPageState extends State<CameraPage> {
         ),
       ),
     );
+  }
+
+  // Helper to color-code the result
+  Color _getColorForResult(String? result) {
+    if (result == "Genuine") return Colors.green;
+    if (result == "Forged") return Colors.red;
+    if (result == "Analyzing...") return Colors.blue;
+    return Colors.grey;
   }
 }

@@ -117,19 +117,18 @@ class _WelcomePageState extends State<WelcomePage> {
             ),
             const SizedBox(height: 30),
 
-            // --- NAME INPUT ---
+            // Name Input
             TextField(
               controller: _nameController,
               decoration: const InputDecoration(
                 labelText: "Enter your name",
-                hintText: "e.g. Chastine",
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.person),
               ),
             ),
             const SizedBox(height: 20),
 
-            // --- IMAGE PICKER ---
+            // Image Picker
             const Text("Select a signature for Registration/Update:",
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
@@ -156,7 +155,7 @@ class _WelcomePageState extends State<WelcomePage> {
             ),
             const SizedBox(height: 20),
 
-            // --- ACTION BUTTONS (Register / Update) ---
+            // Buttons
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else
@@ -184,7 +183,7 @@ class _WelcomePageState extends State<WelcomePage> {
             const Divider(),
             const SizedBox(height: 20),
 
-            // --- CONTINUE BUTTON ---
+            // Continue Button
             SizedBox(
               height: 50,
               child: ElevatedButton.icon(

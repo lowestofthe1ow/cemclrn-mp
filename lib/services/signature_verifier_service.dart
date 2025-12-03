@@ -9,7 +9,7 @@ import 'package:path_provider/path_provider.dart';
 class SignatureVerifierService {
   Module? _module;
   
-  // Constants from your Python script
+  // Constants from Python script
   static const double TRAIN_STD = 0.07225848734378815;
   static const double TRAIN_MEAN = 0.0; 
   static const double D_THRESHOLD = 0.20001120865345;

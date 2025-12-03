@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'camera_page.dart';
 
 /**
- * Welcome Page (Enhanced):
+ * Welcome Page:
  * - Prompts user for name.
  * - Allows Registering a new user (with image).
  * - Allows Updating an existing user (adding signatures).
@@ -115,7 +115,7 @@ class _WelcomePageState extends State<WelcomePage> {
               style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 24),
 
             // Name Input
             TextField(
@@ -147,7 +147,6 @@ class _WelcomePageState extends State<WelcomePage> {
                     : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add_photo_alternate, size: 40, color: Colors.grey),
                           Text("Tap to pick image"),
                         ],
                       ),

@@ -7,4 +7,4 @@
 </div>
 
 > [!NOTE]
-> **This repository contains LaTeX source code for the paper**. The Flutter mobile application can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp). The paper's LaTeX source can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp-report).
+> **This repository contains LaTeX source code for the paper**. The Python web server can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp-train). The paper's LaTeX source can be found [here](https://github.com/lowestofthe1ow/cemclrn-mp-report).
